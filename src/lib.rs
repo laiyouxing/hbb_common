@@ -227,16 +227,23 @@ pub fn get_version_from_url(url: &str) -> String {
 
 pub fn gen_version() {
     println!("cargo:rerun-if-changed=Cargo.toml");
+    println!("cargo:rerun-if-env-changed=BUILD_VERSION");
     use std::io::prelude::*;
     let mut file = File::create("./src/version.rs").unwrap();
-    for line in read_lines("Cargo.toml").unwrap().flatten() {
-        let ab: Vec<&str> = line.split('=').map(|x| x.trim()).collect();
-        if ab.len() == 2 && ab[0] == "version" {
-            file.write_all(format!("pub const VERSION: &str = {};\n", ab[1]).as_bytes())
-                .ok();
-            break;
+    // Allow BUILD_VERSION env var to override Cargo.toml version (used by CI tag builds)
+    let version = if let Ok(bv) = std::env::var("BUILD_VERSION") {
+        format!("\"{}\"", bv)
+    } else {
+        for line in read_lines("Cargo.toml").unwrap().flatten() {
+            let ab: Vec<&str> = line.split('=').map(|x| x.trim()).collect();
+            if ab.len() == 2 && ab[0] == "version" {
+                break ab[1].to_owned();
+            }
         }
-    }
+        .unwrap_or_else(|| "\"unknown\"".to_owned())
+    };
+    file.write_all(format!("pub const VERSION: &str = {};\n", version).as_bytes())
+        .ok();
     // generate build date
     let build_date = format!("{}", chrono::Local::now().format("%Y-%m-%d %H:%M"));
     file.write_all(
