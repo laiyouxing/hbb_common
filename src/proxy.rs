@@ -446,6 +446,7 @@ impl Proxy {
                             proxy,
                             Some(stream),
                             &target_addr,
+                            tls_type.is_some(),
                             danger_accept_invalid_cert,
                             danger_accept_invalid_cert,
                         )

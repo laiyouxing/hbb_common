@@ -208,8 +208,6 @@ impl WsFramedStream {
             MaybeTlsStream::Plain(tcp) => tcp.peer_addr()?,
             #[cfg(not(target_os = "linux"))]
             MaybeTlsStream::NativeTls(tls) => tls.get_ref().get_ref().get_ref().peer_addr()?,
-            #[cfg(target_os = "linux")]
-            MaybeTlsStream::Rustls(tls) => tls.get_ref().get_ref().peer_addr()?,
             MaybeTlsStream::Rustls(tls) => tls.get_ref().0.peer_addr()?,
             _ => return Err(Error::new(ErrorKind::Other, "Unsupported stream type").into()),
         };
