@@ -234,13 +234,15 @@ pub fn gen_version() {
     let version = if let Ok(bv) = std::env::var("BUILD_VERSION") {
         format!("\"{}\"", bv)
     } else {
+        let mut v = "\"unknown\"".to_owned();
         for line in read_lines("Cargo.toml").unwrap().flatten() {
             let ab: Vec<&str> = line.split('=').map(|x| x.trim()).collect();
             if ab.len() == 2 && ab[0] == "version" {
-                break ab[1].to_owned();
+                v = ab[1].to_owned();
+                break;
             }
         }
-        .unwrap_or_else(|| "\"unknown\"".to_owned())
+        v
     };
     file.write_all(format!("pub const VERSION: &str = {};\n", version).as_bytes())
         .ok();
