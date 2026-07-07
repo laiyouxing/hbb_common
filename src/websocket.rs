@@ -20,6 +20,7 @@ use std::{
     time::Duration,
 };
 use tokio::{net::TcpStream, time::timeout};
+#[cfg(not(target_os = "linux"))]
 use tokio_native_tls::native_tls::TlsConnector;
 use tokio_tungstenite::{
     connect_async_tls_with_config, tungstenite::protocol::Message as WsMessage, Connector,
@@ -44,10 +45,24 @@ impl WsFramedStream {
         match tls_type {
             TlsType::Plain => Ok(Some(Connector::Plain)),
             TlsType::NativeTls => {
-                let connector = TlsConnector::builder()
-                    .danger_accept_invalid_certs(danger_accept_invalid_certs)
-                    .build()?;
-                Ok(Some(Connector::NativeTls(connector)))
+                #[cfg(not(target_os = "linux"))]
+                {
+                    let connector = TlsConnector::builder()
+                        .danger_accept_invalid_certs(danger_accept_invalid_certs)
+                        .build()?;
+                    Ok(Some(Connector::NativeTls(connector)))
+                }
+                #[cfg(target_os = "linux")]
+                {
+                    let connector = match crate::verifier::client_config(danger_accept_invalid_certs) {
+                        Ok(client_config) => Some(Connector::Rustls(Arc::new(client_config))),
+                        Err(e) => {
+                            log::warn!("Failed to get client config: {:?}", e);
+                            None
+                        }
+                    };
+                    Ok(connector)
+                }
             }
             TlsType::Rustls => {
                 let connector = match crate::verifier::client_config(danger_accept_invalid_certs) {
@@ -191,7 +206,10 @@ impl WsFramedStream {
         let stream = Self::connect(url.as_ref(), ms_timeout).await?;
         let addr = match stream.get_ref() {
             MaybeTlsStream::Plain(tcp) => tcp.peer_addr()?,
+            #[cfg(not(target_os = "linux"))]
             MaybeTlsStream::NativeTls(tls) => tls.get_ref().get_ref().get_ref().peer_addr()?,
+            #[cfg(target_os = "linux")]
+            MaybeTlsStream::Rustls(tls) => tls.get_ref().get_ref().peer_addr()?,
             MaybeTlsStream::Rustls(tls) => tls.get_ref().0.peer_addr()?,
             _ => return Err(Error::new(ErrorKind::Other, "Unsupported stream type").into()),
         };
