@@ -57,9 +57,8 @@ tokio-rustls = { version = "0.26", features = [
     "tls12",
     "ring",
 ], default-features = false }
-tokio-native-tls = "0.3"
-tokio-tungstenite = { version = "0.26", features = ["native-tls", "rustls-tls-native-roots", "rustls-tls-webpki-roots"] }
-tungstenite = { version = "0.26", features = ["native-tls", "rustls-tls-native-roots", "rustls-tls-webpki-roots"] }
+tokio-tungstenite = { version = "0.26", features = ["rustls-tls-native-roots", "rustls-tls-webpki-roots"] }
+tungstenite = { version = "0.26", features = ["rustls-tls-native-roots", "rustls-tls-webpki-roots"] }
 rustls-platform-verifier = "0.6"
 rustls-pki-types = "1.11"
 rustls-native-certs = "0.8"
@@ -67,6 +66,11 @@ webpki-roots = "1.0.4"
 async-recursion = "1.1"
 webrtc = { version = "0.14.0", optional = true }
 libloading = "0.8"
+[target.'cfg(not(target_os = "linux"))'.dependencies]
+tokio-native-tls = "0.3"
+tokio-tungstenite = { version = "0.26", features = ["native-tls"] }
+tungstenite = { version = "0.26", features = ["native-tls"] }
+
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 mac_address = "1.1"
