@@ -257,6 +257,16 @@ impl WsFramedStream {
     }
 
     #[inline]
+    pub fn take_key(&mut self) -> Option<Encrypt> {
+        self.encrypt.take()
+    }
+
+    #[inline]
+    pub fn set_encrypt(&mut self, encrypt: Encrypt) {
+        self.encrypt = Some(encrypt);
+    }
+
+    #[inline]
     pub fn is_secured(&self) -> bool {
         self.encrypt.is_some()
     }

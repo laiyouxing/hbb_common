@@ -64,6 +64,28 @@ impl Stream {
         }
     }
 
+    /// Take the encryption state from this stream.
+    #[inline]
+    pub fn take_key(&mut self) -> Option<tcp::Encrypt> {
+        match self {
+            #[cfg(feature = "webrtc")]
+            Stream::WebRTC(s) => s.take_key(),
+            Stream::WebSocket(s) => s.take_key(),
+            Stream::Tcp(s) => s.take_key(),
+        }
+    }
+
+    /// Set the full encryption state (key + seq nums) on this stream.
+    #[inline]
+    pub fn set_encrypt(&mut self, encrypt: tcp::Encrypt) {
+        match self {
+            #[cfg(feature = "webrtc")]
+            Stream::WebRTC(s) => s.set_encrypt(encrypt),
+            Stream::WebSocket(s) => s.set_encrypt(encrypt),
+            Stream::Tcp(s) => s.set_encrypt(encrypt),
+        }
+    }
+
     #[inline]
     pub fn is_secured(&self) -> bool {
         match self {

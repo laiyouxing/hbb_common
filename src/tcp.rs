@@ -200,6 +200,19 @@ impl FramedStream {
         self.2 = Some(Encrypt::new(key));
     }
 
+    /// Take the encryption state (key + sequence numbers) from this stream.
+    /// The stream will become unencrypted after this call.
+    pub fn take_key(&mut self) -> Option<Encrypt> {
+        self.2.take()
+    }
+
+    /// Set the full encryption state (key + sequence numbers) on this stream.
+    /// Use this instead of `set_key` when transferring an existing encryption context,
+    /// to preserve the correct send/receive sequence numbers.
+    pub fn set_encrypt(&mut self, encrypt: Encrypt) {
+        self.2 = Some(encrypt);
+    }
+
     fn get_nonce(seqnum: u64) -> Nonce {
         let mut nonce = Nonce([0u8; secretbox::NONCEBYTES]);
         nonce.0[..std::mem::size_of_val(&seqnum)].copy_from_slice(&seqnum.to_le_bytes());
