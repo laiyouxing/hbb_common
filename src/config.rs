@@ -3025,6 +3025,7 @@ pub mod keys {
     // Connection punch-through options
     pub const OPTION_ENABLE_UDP_PUNCH: &str = "enable-udp-punch";
     pub const OPTION_ENABLE_IPV6_PUNCH: &str = "enable-ipv6-punch";
+    pub const OPTION_ENABLE_UPNP: &str = "enable-upnp";
     pub const OPTION_HIDE_USERNAME_ON_CARD: &str = "hide-username-on-card";
     pub const OPTION_HIDE_HELP_CARDS: &str = "hide-help-cards";
     pub const OPTION_DEFAULT_CONNECT_PASSWORD: &str = "default-connect-password";
