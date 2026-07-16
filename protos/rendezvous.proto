@@ -72,6 +72,7 @@ message TestNatRequest {
 message TestNatResponse {
   int32 port = 1; 
   ConfigUpdate cu = 2; // for mobile
+  bytes ip = 3; // public IP observed by server (utf8 string)
 }
 
 enum NatType {
