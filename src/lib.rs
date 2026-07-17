@@ -246,8 +246,12 @@ pub fn gen_version() {
     };
     file.write_all(format!("pub const VERSION: &str = {};\n", version).as_bytes())
         .ok();
-    // generate build date
-    let build_date = format!("{}", chrono::Local::now().format("%Y-%m-%d %H:%M"));
+    // generate build date (固定为北京时间 UTC+8，不依赖 runner 时区)
+    let beijing_offset = chrono::FixedOffset::east_opt(8 * 3600).unwrap();
+    let build_date = chrono::Local::now()
+        .with_timezone(&beijing_offset)
+        .format("%Y-%m-%d %H:%M")
+        .to_string();
     file.write_all(
         format!("#[allow(dead_code)]\npub const BUILD_DATE: &str = \"{build_date}\";\n").as_bytes(),
     )
