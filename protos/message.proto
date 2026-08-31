@@ -870,6 +870,12 @@ message PunchPeerAddr {
   bool ready = 3; // 本端 STUN 已完成、已就绪可以开始打洞
   int32 delta = 4; // 本端对称 NAT delta（端口预测步长）
   int64 sync_at_ms = 5; // 约定的打洞起始绝对时刻（NTP 校准后的 Unix 毫秒）
+  // 显式地址类型，取代"同 IP 不同端口"启发式分类（启发式在发送顺序变化时
+  // 会把 UDP 地址误判为 TCP，导致 UDP 打洞缺失正确目标）：
+  //   0 = UDP/STUN（KCP 打洞目标）
+  //   1 = TCP listener（TCP simultaneous open）
+  //   2 = IPv6
+  uint32 addr_type = 6;
 }
 
 message VoiceCallRequest {
