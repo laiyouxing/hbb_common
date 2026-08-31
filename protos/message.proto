@@ -866,6 +866,10 @@ message Misc {
 message PunchPeerAddr {
   string addr = 1;
   uint32 udp_port = 2;
+  // Phase3 打洞同步信号（两端必须按相同时序发起，否则窗口互相错过）
+  bool ready = 3; // 本端 STUN 已完成、已就绪可以开始打洞
+  int32 delta = 4; // 本端对称 NAT delta（端口预测步长）
+  int64 sync_at_ms = 5; // 约定的打洞起始绝对时刻（NTP 校准后的 Unix 毫秒）
 }
 
 message VoiceCallRequest {
