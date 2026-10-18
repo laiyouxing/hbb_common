@@ -283,9 +283,22 @@ pub fn get_version_number(v: &str) -> i64 {
     // 1.1.10 -> 1001100, 1.2.3 -> 1001030, multiple the last number by 10
     // to leave space for patch version.
     if let Some(v) = versions.next() {
+        // 先补齐到 3 段（缺位补 0）再编码。
+        // 段数不一致时（如 "1.7" 与 "1.6.27"），原实现会把它们编码成相差
+        // 1000 倍的数值（"1.7"=1070 vs "1.6.27"=1006270），导致新版号被判为
+        // 更旧——客户端因此误弹"发现新版本 1.6.27"。补齐后 "1.7" 等价于
+        // "1.7.0"(1007000) > "1.6.27"(1006270)，判断正确。
+        // 3 段及以上的输入编码结果与原来完全一致，向后兼容。
+        let mut segs: Vec<i64> = v
+            .split('.')
+            .map(|x| x.parse::<i64>().unwrap_or(0))
+            .collect();
+        while segs.len() < 3 {
+            segs.push(0);
+        }
         let mut last = 0;
-        for x in v.split('.') {
-            last = x.parse::<i64>().unwrap_or(0);
+        for x in segs {
+            last = x;
             n = n * 1000 + last;
         }
         n -= last;
@@ -565,6 +578,26 @@ mod test {
             "prompt {}",
             "failed"
         );
+    }
+
+    #[test]
+    fn test_get_version_number() {
+        // 3 段版本：数值固定（回归保护，任何改动都不得改变这些值）
+        assert_eq!(get_version_number("1.2.4"), 1002040);
+        assert_eq!(get_version_number("1.6.27"), 1006270);
+        assert_eq!(get_version_number("1.7.0"), 1007000);
+        assert_eq!(get_version_number("1.3.10"), 1003100);
+        // patch 后缀（-N）
+        assert_eq!(get_version_number("1.2.4-1"), 1002041);
+        // 段数不足 3 段必须补齐，否则 "1.7" 会被编码成 1070、被判为比
+        // "1.6.27"(1006270) 低，客户端因此误弹"发现新版本 1.6.27"。
+        assert_eq!(get_version_number("1.7"), get_version_number("1.7.0"));
+        assert_eq!(get_version_number("1"), get_version_number("1.0.0"));
+        assert!(get_version_number("1.6.27") < get_version_number("1.7"));
+        assert!(get_version_number("1.9.9") < get_version_number("1.10"));
+        // 常规顺序关系抽样
+        assert!(get_version_number("1.7.0") > get_version_number("1.6.27"));
+        assert!(get_version_number("1.3.10") > get_version_number("1.3.9"));
     }
 
     #[test]
