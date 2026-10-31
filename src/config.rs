@@ -60,6 +60,18 @@ lazy_static::lazy_static! {
 type Size = (i32, i32, i32, i32);
 type KeyPair = (Vec<u8>, Vec<u8>);
 
+/// "必须先登录领取 ID"模式开关。
+///
+/// 为 true 时，`Config::get_id()` 在本地 id 为空的情况下**不再随机生成**，
+/// 而是返回空串——调用方据此跳过向 hbbs 注册。客户端登录成功后调用
+/// api-server 的 `/api/device/claim-id`，把服务端分配的 ID 用
+/// `Config::set_id` 写回本地，之后一直复用，不再向服务器索要。
+///
+/// 默认 false（保持上游行为）；只有需要该策略的构建在启动时打开它，
+/// 这样普通构建和已有 ID 的机器都不会受影响。
+static ID_CLAIM_REQUIRED: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
 lazy_static::lazy_static! {
     static ref CONFIG: RwLock<Config> = RwLock::new(Config::load());
     static ref CONFIG2: RwLock<Config2> = RwLock::new(Config2::load());
@@ -1210,9 +1222,27 @@ impl Config {
             .unwrap_or(false)
     }
 
+    /// 是否处于"必须先登录领取 ID"模式（见 ID_CLAIM_REQUIRED 的说明）
+    pub fn is_id_claim_required() -> bool {
+        ID_CLAIM_REQUIRED.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    /// 打开/关闭"必须先登录领取 ID"模式。由客户端启动时按策略调用。
+    pub fn set_id_claim_required(required: bool) {
+        ID_CLAIM_REQUIRED.store(required, std::sync::atomic::Ordering::Relaxed);
+    }
+
     pub fn get_id() -> String {
         let mut id = CONFIG.read().unwrap().id.clone();
         if id.is_empty() {
+            // "必须先登录领取 ID"模式：新装设备本地不再自己随机生成 ID，
+            // 由客户端登录后向 api-server 领取并写入配置（见 src/flutter_ffi.rs
+            // 的 main_set_my_id / main_get_device_uuid）。
+            // 必须是空串返回——调用方据此跳过向 hbbs 注册（没有 ID 就无法被控，
+            // 这正是产品要求）。已有 ID 的机器不受影响（id 非空，直接返回）。
+            if crate::config::Config::is_id_claim_required() {
+                return id;
+            }
             if let Some(tmp) = Config::gen_id() {
                 id = tmp;
                 Config::set_id(&id);
